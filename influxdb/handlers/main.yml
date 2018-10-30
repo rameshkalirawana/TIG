@@ -1,0 +1,11 @@
+---
+# file: influxdb/handlers/main.yml
+#
+# handlers file
+#
+
+- name: restart influxdb
+  service:
+    name=influxdb
+    state=restarted
+  become: yes

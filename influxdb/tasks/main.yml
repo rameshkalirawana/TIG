@@ -1,0 +1,91 @@
+---
+# file: influxdb/tasks/main.yml
+#
+# tasks file
+#
+
+- include: debug.yml
+  when: debug | default(false)
+  tags: debug
+
+- include: validation.yml
+  tags: validation
+
+- name: include OS family/distribution specific variables
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "../defaults/{{ ansible_os_family | lower }}-{{ ansible_distribution | lower }}_{{ ansible_distribution_version | lower }}.yml"
+    - "../defaults/{{ ansible_os_family | lower }}-{{ ansible_distribution | lower }}.yml"
+    - "../defaults/{{ ansible_os_family | lower }}.yml"
+
+- name: ensure apt dependencies are installed
+  apt:
+    name= "{{ influxdb_apt_dependencies }}"
+    state= present
+  become: yes
+  when: ansible_distribution | lower == 'debian' and influxdb_apt_dependencies is defined
+
+- name: ensure influxdb apt key is present
+  apt_key:
+    url=https://repos.influxdata.com/influxdb.key
+    id=2582E0C5
+    state=present
+  become: yes
+  tags: [ apt ]
+
+- name: ensure influxdb apt repository is present
+  apt_repository:
+    repo="deb https://repos.influxdata.com/{{ ansible_distribution | lower }} {{ ansible_distribution_release | lower }} stable"
+    update_cache=yes
+    state=present
+  become: yes
+  tags: [ apt ]
+
+- name: ensure influxdb is installed
+  apt:
+    name=influxdb
+    state=present
+  become: yes
+  tags: installation
+  
+#- name: ensure integrity of influxdb configuration
+#  template:
+#    src=etc/influxdb/influxdb.conf.j2
+#    dest=/etc/influxdb/influxdb.conf
+#    owner= "{{ influxdb_user }}"
+#    group="{{ influxdb_group }}"
+#    mode=0644
+#  become: yes
+#  notify: restart influxdb
+# 
+- name: Install Pip
+  apt: 
+    name: python-pip
+    state: present
+  become: yes
+  retries: 5
+  delay: 5
+
+- name: Install client for InfluxDB
+  become: yes
+  pip: 
+   name: influxdb
+#  shell: pip install influxdb
+#  register: influxdb_install
+#  untill: influxdb_install is succeeded
+  retries: 5
+  delay: 2
+
+- name: ensure influxdb is running and enabled to start on boot
+  service:
+    name: influxdb
+    state: started
+    enabled: yes
+  become: yes
+  tags: service
+
+- name: Create database
+  influxdb_database:
+      hostname: "localhost"
+      database_name: "{{ item }}"
+  with_items: "{{ influx_databases }}"

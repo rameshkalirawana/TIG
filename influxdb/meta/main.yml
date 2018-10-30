@@ -1,0 +1,25 @@
+---
+# file: influxdb/meta/main.yml
+#
+# meta file
+#
+galaxy_info:
+  author: Pedro Salgado
+  description: Role to setup InfluxDB.
+  company: ansiblebit.org
+  license: BSD
+  min_ansible_version: 1.9.6
+  platforms:
+    - name: Debian
+      versions:
+        - wheezy
+        - jessie
+    - name: Ubuntu
+      versions:
+        - xenial
+        - trusty
+        - precise
+  galaxy_tags:
+    - database
+    - database:nosql
+dependencies: []
